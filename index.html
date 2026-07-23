@@ -11,6 +11,7 @@
 </head>
 
 <body>
+    <canvas id="backgroundCanvas" aria-hidden="true"></canvas>
     <nav>
         <ul>
             <li><a href="#sobre-mi">Sobre mí</a></li>
@@ -85,5 +86,84 @@
         <p>© 2026 Manuel Parra Llansó. Portfolio personal.</p>
     </footer>
 
+    <script>
+        const canvas = document.getElementById('backgroundCanvas');
+        const context = canvas.getContext('2d');
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const particleCount = 90;
+        const depth = 900;
+        let particles = [];
+        let width = 0;
+        let height = 0;
+        let animationId;
+
+        function resizeCanvas() {
+            const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width * pixelRatio;
+            canvas.height = height * pixelRatio;
+            context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        }
+
+        function createParticle(randomDepth = true) {
+            return {
+                x: (Math.random() - 0.5) * width * 1.5,
+                y: (Math.random() - 0.5) * height * 1.5,
+                z: randomDepth ? Math.random() * depth : depth,
+                size: 1 + Math.random() * 2.5,
+                speed: 0.7 + Math.random() * 1.6
+            };
+        }
+
+        function resetParticles() {
+            particles = Array.from({ length: particleCount }, () => createParticle());
+        }
+
+        function draw() {
+            context.clearRect(0, 0, width, height);
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            particles.forEach((particle) => {
+                particle.z -= particle.speed;
+                if (particle.z <= 1) Object.assign(particle, createParticle(false));
+
+                const scale = 260 / particle.z;
+                const x = particle.x * scale + centerX;
+                const y = particle.y * scale + centerY;
+                const radius = particle.size * scale * 3;
+
+                if (x < -20 || x > width + 20 || y < -20 || y > height + 20) return;
+
+                const opacity = Math.min(0.65, (1 - particle.z / depth) * 0.8 + 0.08);
+                context.beginPath();
+                context.fillStyle = `rgba(0, 212, 255, ${opacity})`;
+                context.shadowBlur = 12;
+                context.shadowColor = 'rgba(0, 255, 255, 0.8)';
+                context.arc(x, y, Math.max(0.5, radius), 0, Math.PI * 2);
+                context.fill();
+            });
+
+            context.shadowBlur = 0;
+            animationId = requestAnimationFrame(draw);
+        }
+
+        function toggleAnimation() {
+            cancelAnimationFrame(animationId);
+            context.clearRect(0, 0, width, height);
+            if (!prefersReducedMotion.matches) draw();
+        }
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            resetParticles();
+        });
+        prefersReducedMotion.addEventListener('change', toggleAnimation);
+
+        resizeCanvas();
+        resetParticles();
+        toggleAnimation();
+    </script>
 </body>
 </html>
